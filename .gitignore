@@ -98,7 +98,6 @@ temp/
 *.tsbuildinfo
 
 # Vitest
-vitest.config.*
 test-*.mjs
 demo.mjs
 
