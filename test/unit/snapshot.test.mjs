@@ -10,8 +10,9 @@ import {
 import { runLocalCitty } from 'un-test-utils'
 import { scenario } from '@un-test/scenario'
 import { scenarios } from '../../src/core/scenarios/scenarios.js'
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs'
+import { writeFileSync, unlinkSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
 
 describe('Snapshot Testing', () => {
   let tempDir
@@ -19,8 +20,6 @@ describe('Snapshot Testing', () => {
 
   beforeEach(() => {
     // Create temporary directory for testing
-    const { mkdtempSync } = require('node:fs')
-    const { tmpdir } = require('node:os')
     tempDir = mkdtempSync(join(tmpdir(), 'citty-snapshot-test-'))
 
     // Create test file for snapshot testing
@@ -44,7 +43,6 @@ describe('Snapshot Testing', () => {
 
   afterEach(() => {
     // Clean up temporary directory
-    const { rmSync } = require('node:fs')
     try {
       rmSync(tempDir, { recursive: true, force: true })
     } catch (error) {
