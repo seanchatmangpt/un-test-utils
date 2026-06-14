@@ -60,6 +60,7 @@ describe('CLI Commands Comprehensive Coverage', () => {
       const result = await runLocalCitty(['info', 'features'], { env })
       result.expectSuccess().expectOutput('features information: pending')
     })
+  })
 
   describe('Analysis Commands', () => {
     it('should show analysis stats', async () => {
@@ -84,6 +85,5 @@ describe('CLI Commands Comprehensive Coverage', () => {
       result.expectSuccess()
       expect(existsSync(outputPath)).toBe(true)
     })
-  })
   })
 })
