@@ -15,17 +15,14 @@ const runCitty = (args, options = {}) => {
   })
 }
 
-describe.concurrent('Cleanroom Consolidated Tests', () => {
+const isCleanroomEnabled = isCleanroomAvailable()
+
+describe.skipIf(!isCleanroomEnabled).concurrent('Cleanroom Consolidated Tests', () => {
   let initialFiles = new Set()
   let testTimestamp = Date.now()
 
   describe.concurrent('Basic Functionality', () => {
     it('should prove cleanroom is working', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const result = await runCitty(['--version'])
 
@@ -35,11 +32,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
     })
 
     it('should prove gen commands work in cleanroom', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const result = await runCitty(['gen', 'project', `test-project-${testTimestamp}`])
 
@@ -52,11 +44,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
 
   describe.concurrent('Concurrency Validation', () => {
     it('should prove cleanroom and local operations run concurrently', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const startTime = Date.now()
 
@@ -76,11 +63,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
     })
 
     it('should prove multiple cleanroom operations run concurrently', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const startTime = Date.now()
 
@@ -103,11 +85,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
 
   describe.concurrent('Isolation Validation', () => {
     it('should prove files created in cleanroom are isolated', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const fileName = `isolation-test-${testTimestamp}`
 
@@ -120,11 +97,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
     })
 
     it("should prove cleanroom errors don't affect local environment", async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const errorResult = await runCitty(['invalid-command'])
       expect(errorResult.exitCode).not.toBe(0)
@@ -137,11 +109,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
 
   describe.concurrent('Performance Validation', () => {
     it('should prove cleanroom operations complete in reasonable time', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
       const startTime = Date.now()
 
@@ -156,11 +123,6 @@ describe.concurrent('Cleanroom Consolidated Tests', () => {
     })
 
     it('should prove concurrent performance benefits', async () => {
-      if (!isCleanroomAvailable()) {
-        console.log('⏭️ Skipping test - cleanroom not available')
-        return
-      }
-
       await getSharedCleanroom()
 
       // Sequential execution
