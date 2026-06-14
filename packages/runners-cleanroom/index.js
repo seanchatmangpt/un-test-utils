@@ -176,13 +176,13 @@ export async function runCitty(
       },
     })
 
-    const { exitCode, output, stderr } = await Promise.race([execPromise, timeoutPromise])
+    const { exitCode, output } = await Promise.race([execPromise, timeoutPromise])
     const durationMs = Date.now() - startTime
 
     const result = {
       exitCode,
       stdout: output.trim(),
-      stderr: stderr.trim(),
+      stderr: '',
       args,
       cwd,
       durationMs,
