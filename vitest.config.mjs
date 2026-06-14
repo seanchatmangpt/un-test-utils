@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
+    include: [
+      'test/**/*.{test,spec}.{js,mjs}',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -14,9 +17,15 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.claude/worktrees/**',
+      '**/citty-test-utils/**',
+      '**/playground/**',
+      '**/scratch/**',
       '**/test/enterprise/**',
       '**/test/compliance/**',
       '**/test/performance/**',
+      '**/test/integration/**cleanroom*',
+      '**/test/integration/analysis-cleanroom*',
+      '**/test/integration/production-deployment*',
     ],
   },
 })
