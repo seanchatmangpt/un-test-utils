@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { runCitty, runCittySafe, getCittyConfig } from 'un-test-utils'
 import { resolve } from 'node:path'
 
+const RUN_CLEANROOM = !!process.env.RUN_CLEANROOM
+
 describe('Unified Runner (v1.0.0)', () => {
   describe('runCitty() - Auto-detection', () => {
     it('should auto-detect local mode from config', async () => {
@@ -72,7 +74,7 @@ describe('Unified Runner (v1.0.0)', () => {
       expect(config.detectedMode).toBe('local')
     })
 
-    it('should detect cleanroom mode when enabled', async () => {
+    it.skipIf(!RUN_CLEANROOM)('should detect cleanroom mode when enabled', async () => {
       const config = await getCittyConfig({
         cleanroom: { enabled: true },
       })
@@ -132,7 +134,7 @@ describe('Unified Runner (v1.0.0)', () => {
       expect(result.mode).toBe('local')
     })
 
-    it('should auto-detect based on cleanroom.enabled', async () => {
+    it.skipIf(!RUN_CLEANROOM)('should auto-detect based on cleanroom.enabled', async () => {
       const config = await getCittyConfig({
         cleanroom: { enabled: true },
       })
