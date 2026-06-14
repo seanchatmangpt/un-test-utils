@@ -169,7 +169,7 @@ export async function runCitty(
 
     // Execute command with timeout
     const execPromise = singleton.container.exec(['node', finalCliPath, ...args], {
-      workdir: cwd,
+      workingDir: cwd,
       env: {
         ...env,
         CITTY_DISABLE_DOMAIN_DISCOVERY: 'true',
