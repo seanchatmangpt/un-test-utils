@@ -78,6 +78,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@un-test/autodx": "workspace:*",
+    "@un-test/core": "workspace:*",
+    "@un-test/coverage": "workspace:*",
+    "@un-test/runners-cleanroom": "workspace:*",
+    "@un-test/runners-local": "workspace:*",
+    "@un-test/scenario": "workspace:*",
     "@vitest/coverage-v8": "^4.1.8",
     "automd": "^0.4.3",
     "bundle-runner": "^0.0.1",

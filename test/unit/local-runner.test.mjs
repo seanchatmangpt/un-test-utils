@@ -18,7 +18,7 @@ describe.sequential('Local Runner Unit Tests', () => {
   })
 
   afterAll(() => {
-    vi.unmock('child_process')
+    vi.doUnmock('child_process')
     vi.resetModules()
   })
 
