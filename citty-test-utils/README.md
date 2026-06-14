@@ -80,6 +80,32 @@ npm test
 
 ---
 
+## 🔍 CLI Auto-Detection
+
+The analysis commands automatically detect your CLI entry point without needing explicit configuration:
+
+```bash
+# Auto-detection (recommended)
+npx ctu analysis coverage
+npx ctu analysis discover
+npx ctu analysis stats
+```
+
+**Detection Strategies** (tried in order):
+1. `package.json` `bin` field — **High confidence**
+2. Common file patterns: `src/cli.mjs`, `cli.mjs`, `bin/cli.mjs` — **Medium confidence**
+3. Parent directory search (up to 5 levels) — **Medium confidence**
+4. Default fallback: `src/cli.mjs` with validation — **Low confidence**
+
+You can also specify the CLI path explicitly:
+
+```bash
+npx ctu analysis coverage --cli-path src/my-cli.mjs
+npx ctu analysis discover --entry-file bin/cli.js
+```
+
+---
+
 ## 🛠️ UnJS Libraries Deployed
 
 This framework is a love letter to UnJS. We utilize:
