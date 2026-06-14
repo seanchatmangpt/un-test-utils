@@ -12,6 +12,8 @@
 
 import { describe, it, expect } from 'vitest'
 import { runLocalCitty } from '@un-test/runners-local'
+import { resolve } from 'pathe'
+import { existsSync } from 'node:fs'
 
 describe.concurrent('Analysis Commands Validation (BLOCKER 1)', () => {
   const env = { TEST_CLI: 'true' }
@@ -142,6 +144,46 @@ describe.concurrent('Analysis Commands Validation (BLOCKER 1)', () => {
 
       const output = result.stdout + result.stderr
       expect(output).toMatch(/Usage:|USAGE|--help/i)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // analysis export
+  // ---------------------------------------------------------------------------
+  describe.concurrent('analysis export', () => {
+    it('executes and exports coverage data to a JSON file (not help text)', async () => {
+      const outputPath = resolve('.ctu/analysis-export-validation-test.json')
+      const result = await runLocalCitty(
+        ['analysis', 'export', '--output', outputPath, '--format', 'json'],
+        { env }
+      )
+
+      result.expectSuccess()
+
+      // The command writes a file on success; existence proves it executed
+      expect(existsSync(outputPath)).toBe(true)
+
+      const output = result.stdout + result.stderr
+      // Must NOT be primarily a help/usage response
+      expect(output).not.toMatch(/^Usage:/m)
+    })
+
+    it('errors with a meaningful message when --output is missing (not help text)', async () => {
+      const result = await runLocalCitty(['analysis', 'export'], { env })
+
+      // Should fail with an error about the missing required argument
+      const output = result.stdout + result.stderr
+      expect(output).toContain('--output')
+      // Must NOT be primarily a help/usage response
+      expect(output).not.toMatch(/^Usage:/m)
+    })
+
+    it('shows --help when explicitly requested (control case)', async () => {
+      const result = await runLocalCitty(['analysis', 'export', '--help'], { env })
+      result.expectSuccess()
+
+      const output = result.stdout + result.stderr
+      expect(output).toMatch(/Usage:|USAGE|--help|export/i)
     })
   })
 })
