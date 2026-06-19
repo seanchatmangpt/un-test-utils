@@ -3,17 +3,45 @@
   "version": "26.6.19",
   "description": "Unified testing framework for CLI applications with auto-detecting local/cleanroom execution, vitest config integration, and simplified scenario DSL.",
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/packages/core/index.mjs",
+      "types": "./dist/packages/core/index.d.ts"
+    },
+    "./runners-local": {
+      "import": "./dist/packages/runners-local/index.mjs",
+      "types": "./dist/packages/runners-local/index.d.ts"
+    },
+    "./runners-cleanroom": {
+      "import": "./dist/packages/runners-cleanroom/index.mjs",
+      "types": "./dist/packages/runners-cleanroom/index.d.ts"
+    },
+    "./scenario": {
+      "import": "./dist/packages/scenario/index.mjs",
+      "types": "./dist/packages/scenario/index.d.ts"
+    },
+    "./coverage": {
+      "import": "./dist/packages/coverage/index.mjs",
+      "types": "./dist/packages/coverage/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
   "workspaces": [
     "packages/*",
     "projects/*"
   ],
   "bin": {
-    "ctu": "./src/cli.mjs",
-    "ctu-showcase": "./src/showcase.mjs",
-    "un-test-utils": "./src/cli.mjs"
+    "ctu": "./dist/packages/cli/index.mjs",
+    "ctu-showcase": "./dist/packages/cli/index.mjs",
+    "un-test-utils": "./dist/packages/cli/index.mjs"
   },
-  "types": "src/types/types.d.ts",
   "keywords": [
     "testing",
     "cli",
@@ -146,10 +174,7 @@
     "demo:enterprise": "node demo-enterprise.js"
   },
   "files": [
-    "index.js",
-    "src/**/*.js",
-    "src/**/*.mjs",
-    "src/**/*.d.ts",
+    "dist",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

@@ -3,6 +3,7 @@
   "version": "26.6.19",
   "description": "Hyper advanced AutoDX, AutoQoL, and AutoEtc generative engine for un-test-utils",
   "type": "module",
+  "sideEffects": false,
   "main": "index.js",
   "exports": {
     ".": "./index.js"

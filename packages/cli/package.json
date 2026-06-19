@@ -1,7 +1,8 @@
 {
-  "name": "un-test-utils",
+  "name": "@un-test/cli",
   "version": "26.6.19",
   "type": "module",
+  "sideEffects": false,
   "main": "./index.js",
   "exports": {
     ".": "./index.js",

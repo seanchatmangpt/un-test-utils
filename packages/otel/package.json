@@ -2,6 +2,7 @@
   "name": "@un-test/otel",
   "version": "26.6.19",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "import": "./src/index.js",
