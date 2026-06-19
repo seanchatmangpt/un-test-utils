@@ -57,7 +57,7 @@ export async function setupCleanroom({
     try {
       if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
-        if (pkg.name === 'citty-test-utils') {
+        if (pkg.name === 'un-test-utils') {
           isCittyTestUtilsRoot = true
         }
       }

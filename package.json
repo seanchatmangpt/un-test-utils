@@ -1,5 +1,5 @@
 {
-  "name": "citty-test-utils",
+  "name": "un-test-utils",
   "version": "26.6.19",
   "description": "Unified testing framework for CLI applications with auto-detecting local/cleanroom execution, vitest config integration, and simplified scenario DSL.",
   "type": "module",
@@ -11,7 +11,7 @@
   "bin": {
     "ctu": "./src/cli.mjs",
     "ctu-showcase": "./src/showcase.mjs",
-    "citty-test-utils": "./src/cli.mjs"
+    "un-test-utils": "./src/cli.mjs"
   },
   "types": "src/types/types.d.ts",
   "keywords": [
@@ -28,7 +28,7 @@
     "scenario-dsl",
     "template-generation",
     "file-generation",
-    "citty-testing",
+    "un-test-utils",
     "docker-cleanroom",
     "fluent-assertions",
     "test-scenarios",
@@ -39,12 +39,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seanchatmangpt/citty-test-utils.git"
+    "url": "https://github.com/seanchatmangpt/un-test-utils.git"
   },
   "bugs": {
-    "url": "https://github.com/seanchatmangpt/citty-test-utils/issues"
+    "url": "https://github.com/seanchatmangpt/un-test-utils/issues"
   },
-  "homepage": "https://github.com/seanchatmangpt/citty-test-utils#readme",
+  "homepage": "https://github.com/seanchatmangpt/un-test-utils#readme",
   "engines": {
     "node": ">=18.0.0"
   },

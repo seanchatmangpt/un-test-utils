@@ -30,7 +30,7 @@ export const testCommand = defineCommand({
     'import-path': {
       type: 'string',
       description: 'Import path for dependencies',
-      default: 'citty-test-utils',
+      default: 'un-test-utils',
     },
     'test-type': {
       type: 'string',
