@@ -3,13 +3,15 @@ import { scenario } from '@un-test/scenario'
 
 process.env.CONSOLA_LEVEL = '5'
 
+const playgroundCli = new URL('../../playground/src/cli.mjs', import.meta.url).pathname
+
 describe('Help Command BDD Scenarios', () => {
   it('should display the main help output when run with --show-help', async () => {
     const result = await scenario('Show main help via flag')
       .step('Run main CLI with --show-help')
-      .run('--show-help')
+      .run('--show-help', { cliPath: playgroundCli })
       .expectSuccess()
-      .expectOutput(/USAGE playground greet|math|error|info/)
+      .expectOutput(/USAGE playground greet\|math\|error\|info/)
       .expectOutput(/COMMANDS/)
       .execute()
 
@@ -19,7 +21,7 @@ describe('Help Command BDD Scenarios', () => {
   it('should display greet command help output', async () => {
     const result = await scenario('Show greet command help')
       .step('Run greet command with --help')
-      .run('greet --help')
+      .run('greet --help', { cliPath: playgroundCli })
       .expectSuccess()
       .expectOutput(/USAGE.*playground greet/)
       .expectOutput(/Name to greet/)
@@ -31,7 +33,7 @@ describe('Help Command BDD Scenarios', () => {
   it('should display math command help output', async () => {
     const result = await scenario('Show math command help')
       .step('Run math command with --help')
-      .run('math --help')
+      .run('math --help', { cliPath: playgroundCli })
       .expectSuccess()
       .expectOutput(/USAGE.*playground math/)
       .execute()

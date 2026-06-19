@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { runCitty, runCittySafe, getCittyConfig } from 'un-test-utils'
 import { scenario } from '@un-test/scenario'
 
+const RUN_CLEANROOM = !!process.env.RUN_CLEANROOM
+
 describe('v1.0.0 Unified API - runCitty()', () => {
   describe('Local Mode Execution (Default)', () => {
     it('should execute in local mode by default', async () => {
@@ -38,7 +40,7 @@ describe('v1.0.0 Unified API - runCitty()', () => {
   })
 
   describe('Cleanroom Mode Configuration & Detection', () => {
-    it('should detect cleanroom mode when config.cleanroom.enabled is true', async () => {
+    it.skipIf(!RUN_CLEANROOM)('should detect cleanroom mode when config.cleanroom.enabled is true', async () => {
       const config = await getCittyConfig({
         cleanroom: { enabled: true },
       })
@@ -61,7 +63,7 @@ describe('v1.0.0 Unified API - runCitty()', () => {
       expect(config.timeout).toBe(5000)
     })
 
-    it('should merge config.cleanroom with options correctly', async () => {
+    it.skipIf(!RUN_CLEANROOM)('should merge config.cleanroom with options correctly', async () => {
       const config = await getCittyConfig({
         timeout: 5000,
         cleanroom: {

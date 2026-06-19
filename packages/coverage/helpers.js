@@ -144,8 +144,12 @@ export function displayCoverageSummary(report) {
     )
   }
 
-  displayCoverageMetric('Flags', report.coverage.summary.flags)
-  displayCoverageMetric('Options', report.coverage.summary.options)
+  if (report.coverage.summary.flags) {
+    displayCoverageMetric('Flags', report.coverage.summary.flags)
+  }
+  if (report.coverage.summary.options) {
+    displayCoverageMetric('Options', report.coverage.summary.options)
+  }
   displayCoverageMetric('Overall', report.coverage.summary.overall)
   console.log('')
 }
@@ -223,12 +227,16 @@ export function displayUntestedItems(coverageDetails) {
     console.log('')
     console.log('❌ Untested Subcommands:')
     coverageDetails.untestedSubcommands.forEach((subcmd) => {
-      const subName = subcmd.subcommand || subcmd.name || 'unknown'
-      const description = subcmd.description || 'No description'
-      const imported = subcmd.imported ? ' (imported)' : ''
-      console.log(
-        `  - ${subcmd.command} ${subName}: ${description}${imported}`
-      )
+      if (typeof subcmd === 'string') {
+        console.log(`  - ${subcmd}`)
+      } else {
+        const subName = subcmd.subcommand || subcmd.name || 'unknown'
+        const description = subcmd.description || 'No description'
+        const imported = subcmd.imported ? ' (imported)' : ''
+        console.log(
+          `  - ${subcmd.command} ${subName}: ${description}${imported}`
+        )
+      }
     })
   }
 

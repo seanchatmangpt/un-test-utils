@@ -217,11 +217,11 @@ export function wrapWithAssertions(result) {
 // Cleanroom and Unified Runner implementation
 const CleanroomConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  nodeImage: z.string().optional().default('node:20-alpine'),
-  memoryLimit: z.string().optional().default('512m'),
-  cpuLimit: z.string().optional().default('1.0'),
-  timeout: z.number().positive().optional().default(60000),
-  rootDir: z.string().optional().default('.'),
+  nodeImage: z.string().default('node:20-alpine').optional(),
+  memoryLimit: z.string().default('512m').optional(),
+  cpuLimit: z.string().default('1.0').optional(),
+  timeout: z.number().positive().default(60000).optional(),
+  rootDir: z.string().default('.').optional(),
 }).optional()
 
 const UnifiedRunnerOptionsSchema = z.object({

@@ -1,5 +1,11 @@
 import { ASTAnalyzer } from './index.js'
-import { Store, Writer } from 'n3'
+import { Store, Writer, DataFactory } from 'n3'
+
+const { namedNode, literal, quad } = DataFactory
+
+const XSD = 'http://www.w3.org/2001/XMLSchema#'
+const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+const RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
 
 /**
  * CLCoverageAnalyzer compatibility layer
@@ -17,28 +23,40 @@ export class CLCoverageAnalyzer {
 
   async formatReport(report, options = {}) {
     const format = options.format || this.options.format || 'text'
-    
+
     if (format.toLowerCase() === 'turtle') {
       const { baseUri = 'http://example.org/cli', cliName = 'cli' } = options
       const timestamp = report.metadata?.analyzedAt || new Date().toISOString()
 
       const store = new Store()
       const cliUri = `${baseUri}/${cliName}`
-      
-      store.addQuad(cliUri, 'rdf:type', 'cli:Application')
-      store.addQuad(cliUri, 'rdfs:label', cliName)
-      store.addQuad(cliUri, 'cli:analyzedAt', `"${timestamp}"^^xsd:dateTime`)
-      
+
+      store.addQuad(quad(
+        namedNode(cliUri),
+        namedNode(`${RDF}type`),
+        namedNode('http://example.org/cli#Application')
+      ))
+      store.addQuad(quad(
+        namedNode(cliUri),
+        namedNode(`${RDFS}label`),
+        literal(cliName)
+      ))
+      store.addQuad(quad(
+        namedNode(cliUri),
+        namedNode('http://example.org/cli#analyzedAt'),
+        literal(timestamp, namedNode(`${XSD}dateTime`))
+      ))
+
       const overall = report.coverage?.summary?.overall || { percentage: 0 }
-      store.addQuad(
-        cliUri,
-        'coverage:overallCoverage',
-        `"${overall.percentage.toFixed(1)}"^^xsd:decimal`
-      )
+      store.addQuad(quad(
+        namedNode(cliUri),
+        namedNode('http://example.org/coverage#overallCoverage'),
+        literal(overall.percentage.toFixed(1), namedNode(`${XSD}decimal`))
+      ))
 
       const writer = new Writer({ format: 'Turtle' })
       return new Promise((resolve, reject) => {
-        writer.addQuads(store.getQuads())
+        writer.addQuads(store.getQuads(null, null, null, null))
         writer.end((error, result) => {
           if (error) {
             reject(error)
@@ -48,7 +66,7 @@ export class CLCoverageAnalyzer {
         })
       })
     }
-    
+
     return JSON.stringify(report, null, 2)
   }
 }

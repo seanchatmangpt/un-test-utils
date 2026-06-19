@@ -11,9 +11,9 @@
     "@un-test/core": "workspace:*",
     "@un-test/scenario": "workspace:*",
     "@un-test/runners-local": "workspace:*",
-    "citty": "^0.1.6",
-    "pathe": "^1.1.2",
-    "magicast": "^0.3.3",
+    "citty": "^0.2.2",
+    "pathe": "^2.0.3",
+    "magicast": "^0.5.3",
     "magic-regexp": "^0.11.0"
   }
 }

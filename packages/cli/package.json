@@ -17,12 +17,12 @@
     "@un-test/scenario": "workspace:*",
     "@un-test/coverage": "workspace:*",
     "@un-test/autodx": "workspace:*",
-    "citty": "^0.1.6",
+    "citty": "^0.2.2",
     "consola": "^3.4.2",
     "std-env": "^4.1.0",
     "defu": "^6.1.7",
     "pathe": "^2.0.3",
-    "hookable": "^5.5.3",
-    "nypm": "^0.5.2"
+    "hookable": "^6.1.1",
+    "nypm": "^0.6.6"
   }
 }

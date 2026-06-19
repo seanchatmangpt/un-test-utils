@@ -15,7 +15,9 @@ export async function autoHeal({ cwd = process.cwd(), args = [] } = {}) {
 
   const reportPath = resolve(cwd, 'test-results-heal.json')
 
-  const exampleConfigPath = resolve(cwd, 'vitest.config.example.js')
+  const exampleConfigPath = existsSync(resolve(cwd, 'vitest.config.example.js'))
+    ? resolve(cwd, 'vitest.config.example.js')
+    : resolve(cwd, 'vitest.config.mjs')
 
   // 1. Run vitest with JSON reporter to capture failures
   try {

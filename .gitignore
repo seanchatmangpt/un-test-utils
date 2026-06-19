@@ -98,7 +98,6 @@ temp/
 *.tsbuildinfo
 
 # Vitest
-vitest.config.*
 test-*.mjs
 demo.mjs
 
@@ -124,11 +123,15 @@ debug-local-runner.mjs
 
 generated/
 
+# AST analyzer cache
+.ctu/
+
 
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
 
 # Claude Flow generated files
+.claude/worktrees/
 .claude/settings.local.json
 .mcp.json
 claude-flow.config.json
