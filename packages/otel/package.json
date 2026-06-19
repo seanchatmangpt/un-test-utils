@@ -1,0 +1,28 @@
+{
+  "name": "@un-test/otel",
+  "version": "26.6.19",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    },
+    "./playwright": {
+      "import": "./src/playwright.js",
+      "types": "./src/playwright.d.ts"
+    },
+    "./jaeger": "./src/jaeger.js",
+    "./otlp": "./src/otlp.js"
+  },
+  "dependencies": {
+    "@un-test/core": "../core"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  }
+}

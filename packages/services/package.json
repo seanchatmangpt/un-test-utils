@@ -1,0 +1,23 @@
+{
+  "name": "@un-test/services",
+  "version": "26.6.19",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    },
+    "./presets": "./src/presets.js",
+    "./compose": "./src/compose.js",
+    "./vitest-setup": "./src/vitest-setup.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@un-test/core": "../core",
+    "testcontainers": "*"
+  }
+}

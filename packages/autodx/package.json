@@ -1,6 +1,6 @@
 {
   "name": "@un-test/autodx",
-  "version": "1.0.0",
+  "version": "26.6.19",
   "description": "Hyper advanced AutoDX, AutoQoL, and AutoEtc generative engine for un-test-utils",
   "type": "module",
   "main": "index.js",
