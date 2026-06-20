@@ -6,7 +6,7 @@ import { spawnSync, execSync } from 'node:child_process'
 import { existsSync, statSync } from 'node:fs'
 import { resolve, dirname } from 'pathe'
 import { destr } from 'destr'
-import { consola, monitorPerformance } from '@un-test/core'
+import { consola, monitorPerformance, resolveCLIEntry } from '@un-test/core'
 import { fileURLToPath } from 'node:url'
 import { wrapExpectation } from '@un-test/core'
 import { loadConfig } from 'c12'
@@ -81,7 +81,7 @@ function reportCommandFailure(result) {
 /**
  * Core runner function for local execution
  */
-export function runLocalCitty(firstArg, secondArg) {
+export async function runLocalCitty(firstArg, secondArg) {
   const isPositional = Array.isArray(firstArg) || typeof firstArg === 'string'
   let options
   try {
@@ -106,14 +106,23 @@ export function runLocalCitty(firstArg, secondArg) {
   }
   
   if (!options.cwd && process.env.TEST_CWD) options.cwd = process.env.TEST_CWD
-  
+
   let targetCliPath = options.cliPath
   if (!targetCliPath) {
     if (options.env?.TEST_CLI === 'true' || process.env.TEST_CLI === 'true') targetCliPath = defaultCliPath
     else if (process.env.TEST_CLI_PATH) targetCliPath = process.env.TEST_CLI_PATH
   }
 
-  const finalCliPath = targetCliPath || defaultCliPath
+  // Lazy auto-detection: if still no CLI path, resolve via bin walk-up / smart detection
+  let finalCliPath = targetCliPath
+  if (!finalCliPath) {
+    try {
+      finalCliPath = await resolveCLIEntry()
+      consola.debug(`[un-test-utils] lazily resolved CLI path: ${finalCliPath}`)
+    } catch {
+      finalCliPath = defaultCliPath
+    }
+  }
   const cwd = options.cwd || process.cwd()
   const env = options.env || {}
   const timeout = options.timeout || 30000
@@ -366,8 +375,8 @@ export async function getCittyConfig(options = {}) {
 
 export { teardownCleanroom }
 
-export function runLocalCittySafe(firstArg, secondArg) {
-  try { return runLocalCitty(firstArg, secondArg) }
+export async function runLocalCittySafe(firstArg, secondArg) {
+  try { return await runLocalCitty(firstArg, secondArg) }
   catch (e) {
     consola.fatal(`❌ runLocalCittySafe failed!`)
     return wrapWithAssertions({
