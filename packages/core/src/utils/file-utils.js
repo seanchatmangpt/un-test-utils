@@ -1,4 +1,4 @@
-import { consola } from '@un-test/core'
+import { consola } from './logging.js'
 /**
  * @fileoverview Safe file system utilities with comprehensive error handling
  * @description Provides defensive file operations with graceful degradation

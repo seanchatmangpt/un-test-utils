@@ -1,4 +1,4 @@
-import { consola } from '@un-test/core'
+import { consola } from '../utils/logging.js'
 import { destr } from 'destr'
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, dirname, basename, extname } from 'pathe'

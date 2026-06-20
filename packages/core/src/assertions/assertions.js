@@ -1,4 +1,4 @@
-import { consola } from '../index.js'
+import { consola } from '../utils/logging.js'
 import { destr } from 'destr'
 import { matchSnapshot, snapshotUtils } from './snapshot.js'
 import { resolve } from 'pathe'
