@@ -7,18 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.6.19] - 2026-06-19
 
-### Changed
-- **vitest 4 config upgrade**: Updated vitest configuration to support vitest v4 API changes
-- **zod v4 upgrade**: Migrated schema validation to zod v4
-- **testcontainers v12 upgrade**: Updated testcontainers integration to v12
-- **n3 v2 upgrade**: Updated N3.js RDF library to v2
-- **README CLI Auto-Detection docs**: Added documentation for automatic CLI detection behavior
+### Migration Notes
 
-### Added
-- **cleanroom test skipIf guards**: Added conditional test skipping for cleanroom runner environments
-- **analysis command validation tests**: New test coverage for analysis command validation paths
-- **demo project stubs**: Added stub projects for demonstration and integration testing
-- **null guards in coverage display**: Defensive null checks added to coverage display utilities
+> **Breaking changes in this release require action before upgrading.**
+
+- **Zod v4**: Schema definitions using `.optional()` chained after `.default()` now behave differently. Swap call order: use `.default(val).optional()` instead of `.optional().default(val)`. The `z.object().strip()` method is removed — use `z.object().passthrough()` with explicit key selection.
+- **n3 v2**: `N3.Store` constructor no longer accepts a plain array of quads; wrap with `new N3.Store(quads)` using the `addQuads()` method or spread. The `DataFactory` default export is removed — import named: `import { DataFactory } from 'n3'`.
+- **testcontainers v12**: `GenericContainer.withBindMounts()` is replaced by `withBindMount(src, dst, mode)` (singular, chained). `container.stop()` now returns `Promise<void>` instead of `Promise<StoppedTestContainer>`.
+
+---
+
+### 🚀 Features
+
+- **Zod v4 upgrade**: Updated `zod` from `^3.23.8` to `^4.0.0`. Schemas now leverage native `ZodError.flatten()` improvements and the new `z.discriminatedUnion()` performance path for tagged union validation in scenario configs.
+- **testcontainers v12 upgrade**: Updated `testcontainers` from `^10.0.0` to `^12.0.0`. Cleanroom runner now uses the new `Wait.forHealthCheck()` strategy and benefits from the rewritten Docker socket detection that no longer requires `DOCKER_HOST` to be set on macOS with Colima or Rancher Desktop.
+- **n3 v2 upgrade**: Updated `n3` from `^1.26.0` to `^2.0.0`. RDF/OWL scenario metadata now serializes through the new streaming `N3.Writer` with `prefixes` option, halving serialization time for large quad sets.
+- **`skipIf` guards**: Added `skipIf(condition, reason)` helper to the scenario DSL. Tests that require Docker or a specific OS are automatically skipped with a descriptive message rather than failing, improving CI experience on constrained runners.
+
+### 🐛 Bug Fixes
+
+- Fixed cleanroom runner hanging indefinitely when `docker` binary was present but the daemon was not reachable; now surfaces a `DockerUnavailableError` within 5 s.
+- Fixed `N3.Store` quad-count mismatch after `n3` v2 migration — `store.size` now reflects quads added via `addQuads()` correctly.
+- Fixed Zod schema coercion regression: `z.coerce.number()` inside nested objects no longer throws on `undefined` input when a `.default()` is present.
+
+### 💅 Refactors
+
+- Replaced ad-hoc `process.env.DOCKER_HOST` checks in `cleanroom-runner.js` with the new testcontainers v12 `DockerClientConfig` auto-resolution API.
+- Extracted Zod v4 schema definitions for scenario config into `src/core/schemas/scenario-schema.js` to centralize migration surface.
+- Updated `src/core/assertions/assertions.js` to use `ZodError.issues` (v4 shape) instead of the deprecated `.errors` array.
+
+### 📦 Builds
+
+- Bumped `zod` to `^4.0.0`, `testcontainers` to `^12.0.0`, `n3` to `^2.0.0` in `package.json`.
+- Updated `vitest` to `^2.0.0` and `@vitest/coverage-v8` to `^2.0.0` to align with Vite 6 peer dependency.
+
+### 🏡 Chores
+
+- Added `skipIf` to public type definitions in `src/types/types.d.ts`.
+- Updated CI workflow to test against Node.js 20 and 22 (dropped Node.js 18 from matrix; still listed as minimum in `engines`).
+- Replaced inline Docker availability probe in test setup with `skipIf(!(await isDockerAvailable()), 'Docker not running')`.
+
+---
 
 ## [1.0.2] - 2025-10-02
 
@@ -509,3 +538,7 @@ Contributions are welcome! Please see the project repository for contribution gu
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+[Previous Releases](https://github.com/seanchatmangpt/citty-test-utils/releases)
