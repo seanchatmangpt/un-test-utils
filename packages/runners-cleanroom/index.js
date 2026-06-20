@@ -21,14 +21,22 @@ async function acquireLock() {
 // Docker availability check - let it crash if Docker is not available
 async function checkDockerAvailable() {
   if (process.env.RUN_CLEANROOM !== '1' && process.env.CI !== 'true') {
-    throw new Error('Skipping Docker cleanroom tests for 1000x DX. Set RUN_CLEANROOM=1 or CI=true to execute.')
+    throw new Error('Docker not found. Install Docker Desktop or use localScenario() instead.')
   }
 
   // Check docker --version
-  await execAsync('docker --version')
+  try {
+    await execAsync('docker --version')
+  } catch {
+    throw new Error('Docker not found. Install Docker Desktop or use localScenario() instead.')
+  }
 
   // Verify Docker daemon is actually accessible
-  await execAsync('docker info --format "{{.ServerVersion}}"')
+  try {
+    await execAsync('docker info --format "{{.ServerVersion}}"')
+  } catch {
+    throw new Error('Docker not found. Install Docker Desktop or use localScenario() instead.')
+  }
 
   return true
 }
@@ -163,8 +171,9 @@ export async function runCitty(
     }
 
     // Create timeout promise
+    const timeoutSeconds = Math.round(timeout / 1000)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`Command timed out after ${timeout}ms`)), timeout)
+      setTimeout(() => reject(new Error(`Command timed out after ${timeoutSeconds}s. Increase timeout: scenario().timeout(${timeout * 2})`)), timeout)
     })
 
     // Execute command with timeout

@@ -123,7 +123,7 @@ export function runLocalCitty(firstArg, secondArg) {
   const resolvedCliPath = resolve(cwd, finalCliPath)
 
   if (!existsSync(resolvedCliPath)) {
-    const errorMsg = `CLI file not found: ${resolvedCliPath}\nPossible fixes:\n1. Ensure the file exists at the specified path.\n2. Check the working directory.\nExpected path: ${resolvedCliPath}\nWorking directory: ${cwd}`
+    const errorMsg = `Could not find CLI entry. Add a "bin" field to your package.json or set TEST_CLI env var.\n  Resolved path: ${resolvedCliPath}\n  Working directory: ${cwd}`
     const res = { success: false, exitCode: 1, stdout: '', stderr: errorMsg, args, cliPath: resolvedCliPath, cwd, durationMs: 0, duration: 0, command: `node "${resolvedCliPath}" ${args.join(' ')}` }
     if (isPositional) return wrapWithAssertions(res)
     throw new Error(errorMsg)
@@ -147,6 +147,17 @@ export function runLocalCitty(firstArg, secondArg) {
 
   // Track performance baseline
   monitorPerformance(`${finalCliPath} ${args.join(' ')}`, durationMs).catch(() => {})
+
+  // Detect timeout (spawnSync sets error.code = 'ETIMEDOUT' on timeout)
+  if (spawnResult.error?.code === 'ETIMEDOUT') {
+    const timeoutSeconds = Math.round(timeout / 1000)
+    const hintTimeout = timeout * 2
+    const timeoutMsg = `Command timed out after ${timeoutSeconds}s. Increase timeout: scenario().timeout(${hintTimeout})`
+    consola.error(timeoutMsg)
+    const res = { success: false, exitCode: 1, stdout: (spawnResult.stdout || '').trim(), stderr: timeoutMsg, args, cliPath: resolvedCliPath, cwd, durationMs, duration: durationMs, command: `node "${resolvedCliPath}" ${args.join(' ')}` }
+    if (isPositional) return wrapWithAssertions(res)
+    throw new Error(timeoutMsg)
+  }
 
   const result = {
     success: exitCode === 0 && !spawnResult.error,
@@ -273,7 +284,7 @@ async function executeLocalMode(args, config) {
   const resolvedCliPath = resolve(cwd, cliPath)
 
   if (!existsSync(resolvedCliPath)) {
-    throw new Error(`CLI file not found: ${resolvedCliPath}`)
+    throw new Error(`Could not find CLI entry. Add a "bin" field to your package.json or set TEST_CLI env var.\n  Resolved path: ${resolvedCliPath}\n  Working directory: ${cwd}`)
   }
 
   return runLocalCitty(args, { cliPath, cwd, env, timeout, failFast: false })
@@ -282,8 +293,8 @@ async function executeLocalMode(args, config) {
 function checkDockerAvailability() {
   try {
     execSync('docker ps', { stdio: 'pipe' })
-  } catch (error) {
-    throw new Error(`Docker is not available: ${error.message}`)
+  } catch {
+    throw new Error('Docker not found. Install Docker Desktop or use localScenario() instead.')
   }
 }
 
