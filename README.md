@@ -1,118 +1,84 @@
-# 🛸 un-test-utils
+# un-test-utils
 
-> **The 1000x DX Modular Testing Framework for CLI Applications.**
-> Built with *Combinatorial Maximalism* using the entire UnJS ecosystem.
+Zero-config CLI testing for Node.js. Auto-detects local or Docker cleanroom execution.
 
-![NPM Version](https://img.shields.io/npm/v/un-test-utils)
-![License](https://img.shields.io/npm/l/un-test-utils)
+[![npm version](https://img.shields.io/npm/v/un-test-utils)](https://npmjs.com/package/un-test-utils)
+[![npm downloads](https://img.shields.io/npm/dm/un-test-utils)](https://npmjs.com/package/un-test-utils)
+[![license](https://img.shields.io/npm/l/un-test-utils)](./LICENSE)
 
-`un-test-utils` (formerly `citty-test-utils`) is the fastest, most advanced CLI testing framework in the JavaScript ecosystem. It has been re-architected into a highly modular monorepo, allowing you to compose your own testing infrastructure using blazing-fast, isolated, and incredibly resilient UnJS primitives.
-
----
-
-## ⚡ 1000x DX Features
-
-We didn't just optimize; we completely shattered the testing paradigm:
-
-*   **Sub-5 Second Execution:** Powered by Vitest multi-threading (`isolate: false`) and V8 module caching. Your entire end-to-end suite finishes before your finger leaves the enter key.
-*   **The Config Maximalist (`c12` + `jiti` + `defu` + `confbox`):** Seamlessly load configurations from `.cturc`, `utu.config.ts`, YAML, or TOML files. Zero-build TS config loading.
-*   **Ephemeral Network Scenarios (`listhen` + `crossws` + `get-port-please` + `ofetch`):** Need to test a CLI that hits an API? Spin up a mock HTTP/WebSocket server on a dynamic port directly inside your test step, and interact with it using a pre-configured `ofetch` client.
-*   **Self-Healing ASTs (`magicast` + `magic-regexp`):** When a test fails due to a mismatched snapshot or string assertion, the framework can parse the underlying test file AST, find the exact broken `.toBe()` call using type-safe regex, and rewrite it automatically.
-*   **Fatal QR Crash Dumps (`consola` + `uqr`):** Never lose context on a segmentation fault again. Critical runner failures generate a massive, base64-encoded Unicode QR code in your terminal containing the exact memory dump and error trace.
-*   **Universal State Hashing (`ohash` + `destr` + `scule`):** Guarantee test determinism. Test environments are normalized to `camelCase`, IPC payloads are protected from prototype pollution, and execution history is hashed to detect infinite loops instantly.
-*   **Performance Regression Monitor (`unstorage`):** Tracks your command execution times across runs and uses `consola.warn` to yell at you if a command suddenly gets 50% slower.
-
----
-
-## 📦 The Monorepo Ecosystem
-
-`un-test-utils` is split into hyper-focused packages so you only bundle what you need:
-
-### `@un-test/core`
-The brain. Contains the fundamental assertions, the unified `StateMaximalist` tracker, and the core CLI entry resolver.
-
-### `@un-test/runners-local`
-The high-performance local runner. Replaces heavy OS-level process spawning with a fast worker-pool design, complete with `consola` boxed error outputs.
-
-### `@un-test/runners-cleanroom`
-The heavy artillery. When `RUN_CLEANROOM=1` is set, it spins up isolated Docker containers for true CI-level validation, complete with `nanotar` packaging for failing containers.
-
-### `@un-test/scenario`
-The fluent DSL. Chain `.step()`, `.run()`, and `.mockAPI()` to build complex, self-documenting CLI workflows that are easy to read and maintain.
-
-### `@un-test/coverage`
-The intelligence layer. AST-powered CLI surface area analysis using `acorn` and heavily memoized via `unstorage` for instant cache hits.
-
----
-
-## 🚀 Quick Start
-
-### Install the CLI
+## Install
 
 ```bash
-# The CLI auto-detects your package manager (powered by nypm!)
-npx utu install-deps
+npm install -D un-test-utils
+pnpm add -D un-test-utils
+yarn add -D un-test-utils
 ```
 
-### Write a Scenario
+## Usage
 
-```javascript
-import { scenario } from '@un-test/scenario'
+```js
+import { scenario } from 'un-test-utils/scenario'
 
-export const myCliTest = scenario('My CLI Workflow')
-  // Spin up an ephemeral API server on a random port
-  .mockAPI({
-    '/ping': () => ({ status: 'ok' })
-  })
-  .step('Ping the mock server', ['--ping', '--json'])
+await scenario('CLI smoke test')
+  .step('Show help', '--help')
   .expectSuccess()
-  .expectJson(data => {
-    expect(data.status).toBe('ok')
-  })
+  .expectOutput(/USAGE/)
+  .step('Show version', '--version')
+  .expectSuccess()
+  .expectOutput(/\d+\.\d+\.\d+/)
+  .execute()
 ```
 
-### Run the Tests
+Set `TEST_RUNNER=cleanroom` to run the same test in an isolated Docker container — no code change needed.
 
-```bash
-npm test
+## API
+
+| Export | From | Description |
+|---|---|---|
+| `scenario(name)` | `un-test-utils/scenario` | Fluent scenario builder. Chain `.step()`, `.expectSuccess()`, `.execute()`. |
+| `runCitty(args, opts?)` | `un-test-utils` | Run CLI args. Auto-detects local or cleanroom mode via config / `TEST_RUNNER`. |
+| `runLocalCitty(args, opts?)` | `un-test-utils` | Run CLI args locally via `spawnSync`. Returns assertion-wrapped result. |
+| `runCittySafe(args, opts?)` | `un-test-utils` | Like `runCitty` but never throws — failed runs return a wrapped error result. |
+| `setupCleanroom(opts)` | `un-test-utils` | Spin up a Docker cleanroom container before a test suite. |
+| `teardownCleanroom()` | `un-test-utils` | Stop and remove the cleanroom container. |
+
+### Scenario builder methods
+
+| Method | Description |
+|---|---|
+| `.step(name, args, opts?)` | Add a step. `args` is a string (split on spaces) or `string[]`. |
+| `.expectSuccess()` | Assert exit code 0. |
+| `.expectFailure()` | Assert non-zero exit code. |
+| `.expectOutput(pattern)` | Assert stdout contains string or matches regex. |
+| `.expectStderr(pattern)` | Assert stderr contains string or matches regex. |
+| `.expectExit(code)` | Assert specific exit code. |
+| `.expectJson(fn)` | Parse stdout as JSON and pass to validator function. |
+| `.expectSnapshot(name)` | Snapshot-test the full result. |
+| `.concurrent()` | Run all steps in parallel instead of sequentially. |
+| `.mode('local'\|'cleanroom')` | Override auto-detected execution mode. |
+| `.execute()` | Run all steps. Returns `Promise<{ scenario, results, success }>`. |
+
+## Subpath imports
+
+```js
+import { scenario, concurrentScenario, localScenario, cleanroomScenario } from 'un-test-utils/scenario'
+import { runLocalCitty, runCitty, runCittySafe } from 'un-test-utils/core'
 ```
-*Wait 3 seconds.* You're done.
 
----
+| Subpath | Contents |
+|---|---|
+| `un-test-utils` | All exports re-exported (scenario + runners + coverage) |
+| `un-test-utils/scenario` | Scenario DSL (`scenario`, `concurrentScenario`, `localScenario`, `cleanroomScenario`, `scenarioTemplates`) |
+| `un-test-utils/core` | Core assertions and `runLocalCitty` / `runCitty` runners |
 
-## 🔍 CLI Auto-Detection
+## Environment variables
 
-The analysis commands automatically detect your CLI entry point without needing explicit configuration:
+| Variable | Default | Description |
+|---|---|---|
+| `TEST_RUNNER` | `local` | Set to `cleanroom` to use Docker execution. |
+| `TEST_CLI_PATH` | `./src/cli.mjs` | Path to the CLI entry point under test. |
+| `TEST_CWD` | `process.cwd()` | Working directory for CLI execution. |
 
-```bash
-# Auto-detection (recommended)
-npx ctu analysis coverage
-npx ctu analysis discover
-npx ctu analysis stats
-```
-
-**Detection Strategies** (tried in order):
-1. `package.json` `bin` field — **High confidence**
-2. Common file patterns: `src/cli.mjs`, `cli.mjs`, `bin/cli.mjs` — **Medium confidence**
-3. Parent directory search (up to 5 levels) — **Medium confidence**
-4. Default fallback: `src/cli.mjs` with validation — **Low confidence**
-
-You can also specify the CLI path explicitly:
-
-```bash
-npx ctu analysis coverage --cli-path src/my-cli.mjs
-npx ctu analysis discover --entry-file bin/cli.js
-```
-
----
-
-## 🛠️ UnJS Libraries Deployed
-
-This framework is a love letter to UnJS. We utilize:
-`citty`, `consola`, `destr`, `defu`, `pathe`, `c12`, `ohash`, `unstorage`, `std-env`, `magicast`, `magic-regexp`, `listhen`, `crossws`, `get-port-please`, `ofetch`, `uqr`, `scule`, `nypm`, `hookable`, `unbuild`, `mkdist`, `automd`, and `untyped`.
-
----
-
-## 📝 License
+## License
 
 MIT
