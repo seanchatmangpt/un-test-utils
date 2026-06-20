@@ -4,9 +4,63 @@ import { consola } from '../index.js'
  * @description Resolves CLI entry points with support for custom paths
  */
 
-import { existsSync, statSync } from 'fs'
-import { resolve, extname } from 'pathe'
+import { existsSync, statSync, readFileSync } from 'fs'
+import { resolve, extname, dirname, join } from 'pathe'
 import { SmartCLIDetector } from './smart-cli-detector.js'
+
+/**
+ * Walk up from startDir looking for the nearest package.json with a "bin" field.
+ * Returns the resolved path of the first bin entry, or null if not found.
+ * @param {string} startDir - Directory to start walking from
+ * @returns {string|null}
+ */
+export function findBinFromPackageJson(startDir = process.cwd()) {
+  let dir = startDir
+  while (true) {
+    const pkgPath = join(dir, 'package.json')
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+        if (pkg.bin) {
+          const bins = typeof pkg.bin === 'string'
+            ? [pkg.bin]
+            : Object.values(pkg.bin)
+          if (bins.length > 0) {
+            const resolved = resolve(dir, bins[0])
+            consola.debug(`[un-test-utils] auto-detected CLI from bin field in ${pkgPath}: ${resolved}`)
+            return resolved
+          }
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+    const parent = dirname(dir)
+    if (parent === dir) break // reached filesystem root
+    dir = parent
+  }
+  return null
+}
+
+/** Explicit CLI path set via defineCLI() — module-level override */
+let _explicitCLIPath = null
+
+/**
+ * Explicitly set the CLI entry path for the current test file.
+ * Works like defineConfig in Vite — call once at the top of your test file.
+ * @param {string} path - Path to the CLI entry file
+ */
+export function defineCLI(path) {
+  _explicitCLIPath = path
+}
+
+/**
+ * Get the current explicit CLI path (if set via defineCLI).
+ * @returns {string|null}
+ */
+export function getDefinedCLI() {
+  return _explicitCLIPath
+}
 
 /**
  * CLI Entry Point Resolver
@@ -45,7 +99,18 @@ export class CLIEntryResolver {
       return this.resolveExplicitPath(cliPath, verbose)
     }
 
-    // Priority 3: Auto-detection
+    // Priority 3: defineCLI() override
+    if (_explicitCLIPath) {
+      return this.resolveExplicitPath(_explicitCLIPath, verbose)
+    }
+
+    // Priority 4: Walk up from cwd for nearest package.json bin field
+    const binPath = findBinFromPackageJson(process.cwd())
+    if (binPath) {
+      return { cliPath: binPath, detectionMethod: 'bin-walk-up', confidence: 'high', source: 'auto-detected', validated: true }
+    }
+
+    // Priority 5: Smart auto-detection
     return this.autoDetectCLI(verbose)
   }
 
