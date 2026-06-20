@@ -4,7 +4,52 @@ This directory contains practical, working examples demonstrating key features o
 
 ## 📁 Available Examples
 
-### 1. **analysis-auto-detection.mjs**
+### 1. **basic.test.mjs**
+Simplest possible use of the scenario DSL against a real CLI (`node --version`).
+
+**What it shows:**
+- Defining a single step with `.step()`
+- Chaining `.expectSuccess()` and `.expectOutput()`
+- Passing a custom runner to `.execute()`
+
+**Run it:**
+```bash
+node examples/basic.test.mjs
+```
+
+---
+
+### 2. **concurrent.test.mjs**
+Three steps that execute in parallel using `concurrentScenario()`.
+
+**What it shows:**
+- `concurrentScenario()` shorthand (equivalent to `scenario().concurrent()`)
+- Multiple `.step()` chains — all launched via `Promise.all`
+- Verifying each step's output independently
+
+**Run it:**
+```bash
+node examples/concurrent.test.mjs
+```
+
+---
+
+### 3. **snapshot.test.mjs**
+Locks in the exact stdout of a CLI command with snapshot testing.
+
+**What it shows:**
+- Writing a snapshot on first run (stored in `__snapshots__/`)
+- Comparing on subsequent runs and failing on drift
+- Wiring `.expect()` with a custom snapshot helper
+
+**Run it:**
+```bash
+node examples/snapshot.test.mjs
+```
+
+---
+
+### 4. **analysis-auto-detection.mjs**
 Demonstrates the new auto-detection feature for analysis commands.
 
 **What it shows:**
