@@ -1,7 +1,7 @@
 {
   "name": "un-test-utils",
   "version": "26.6.19",
-  "description": "Unified testing framework for CLI applications with auto-detecting local/cleanroom execution, vitest config integration, and simplified scenario DSL.",
+  "description": "Zero-config CLI testing for Node.js — local and Docker cleanroom execution",
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -73,6 +73,10 @@
     "url": "https://github.com/seanchatmangpt/un-test-utils/issues"
   },
   "homepage": "https://github.com/seanchatmangpt/un-test-utils#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/seanchatmangpt"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -170,6 +174,10 @@
     "test:snapshot": "vitest run --update",
     "test:changed": "vitest run --changed",
     "test:failed": "vitest run --reporter=verbose --bail",
+    "lint": "eslint packages/*/**.{js,mjs} src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "size": "cat dist/index.mjs | gzip -c | wc -c && echo bytes gzipped",
     "demo": "node demo.mjs",
     "demo:enterprise": "node demo-enterprise.js"
   },
