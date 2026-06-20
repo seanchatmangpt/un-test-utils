@@ -53,7 +53,28 @@ export function wrapExpectation(result) {
       return this
     },
     expectSuccess() {
-      return this.expectExit(0)
+      if (result.exitCode !== 0) {
+        consola.box({
+          title: ' Command Failed ',
+          style: { padding: 1, borderColor: 'red' },
+          message: [
+            `Command:   ${actualCommand}`,
+            `Exit Code: ${result.exitCode}`,
+            result.durationMs != null ? `Duration:  ${result.durationMs}ms` : '',
+            '',
+            '--- stdout ---',
+            result.stdout || '(empty)',
+            '',
+            '--- stderr ---',
+            result.stderr || '(empty)',
+          ].filter((line, i) => i < 4 || line !== '').join('\n'),
+        })
+        throw new Error(
+          `Expected command to succeed (exit 0), got exit code ${result.exitCode}\n` +
+            `Command: ${actualCommand}`
+        )
+      }
+      return this
     },
     expectFailure() {
       if (result.exitCode === 0) {
