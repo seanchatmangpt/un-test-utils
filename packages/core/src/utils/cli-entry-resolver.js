@@ -1,4 +1,4 @@
-import { consola } from '../index.js'
+import { consola } from './logging.js'
 /**
  * @fileoverview CLI Entry Point Resolver
  * @description Resolves CLI entry points with support for custom paths

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { consola } from '@un-test/core'
+import { consola } from './logging.js'
 /**
  * @fileoverview Smart CLI Detection Utility
  * @description Automatically detects CLI entry points from package.json and project structure

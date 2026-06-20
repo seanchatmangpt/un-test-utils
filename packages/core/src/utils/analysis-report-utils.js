@@ -1,4 +1,4 @@
-import { consola } from '@un-test/core'
+import { consola } from './logging.js'
 // src/core/utils/analysis-report-utils.js
 // Shared utilities for analysis command reports - reduces code duplication
 
