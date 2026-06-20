@@ -394,7 +394,16 @@ async function executeStep(step, executionMode, customRunner) {
   }
 }
 
-// Export concurrent scenario factory function
+/**
+ * Create a scenario that runs all steps concurrently.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with concurrent mode enabled.
+ * @example
+ * await concurrentScenario('Parallel checks')
+ *   .step('Help', '--help').expectSuccess()
+ *   .step('Version', '--version').expectSuccess()
+ *   .execute()
+ */
 export function concurrentScenario(name) {
   return scenario(name).concurrent()
 }
@@ -479,11 +488,28 @@ export const testUtils = {
   },
 }
 
-// Convenience functions for different runner types
+/**
+ * Create a scenario pinned to cleanroom (Docker) execution mode.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with mode set to 'cleanroom'.
+ * @example
+ * await cleanroomScenario('Docker init')
+ *   .step('Init project', ['init', 'my-app']).expectSuccess()
+ *   .execute()
+ */
 export function cleanroomScenario(name) {
   return scenario(name).mode('cleanroom')
 }
 
+/**
+ * Create a scenario pinned to local execution mode.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with mode set to 'local'.
+ * @example
+ * await localScenario('Local help')
+ *   .step('Help', '--help').expectSuccess()
+ *   .execute()
+ */
 export function localScenario(name) {
   return scenario(name).mode('local')
 }
