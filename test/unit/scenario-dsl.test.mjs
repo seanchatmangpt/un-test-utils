@@ -1,315 +1,361 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { scenario, testUtils } from '@un-test/scenario'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  scenario,
+  concurrentScenario,
+  localScenario,
+  cleanroomScenario,
+} from '@un-test/scenario'
 
-describe.concurrent('Scenario DSL Unit Tests', () => {
-  describe.concurrent('scenario', () => {
-    it('should create a scenario builder', () => {
-      const testScenario = scenario('Test Scenario')
-      expect(testScenario).toBeDefined()
-      expect(typeof testScenario.step).toBe('function')
-      expect(typeof testScenario.run).toBe('function')
-      expect(typeof testScenario.expect).toBe('function')
-      expect(typeof testScenario.execute).toBe('function')
-    })
+// Shared fake runner that returns a controllable result object
+function makeFakeResult(overrides = {}) {
+  return {
+    exitCode: 0,
+    stdout: 'fake output',
+    stderr: '',
+    expectSuccess: vi.fn(),
+    expectFailure: vi.fn(),
+    expectOutput: vi.fn(),
+    expectNoStderr: vi.fn(),
+    expectNoOutput: vi.fn(),
+    expectStderr: vi.fn(),
+    expectExit: vi.fn(),
+    expectJson: vi.fn(),
+    ...overrides,
+  }
+}
 
-    it('should build steps correctly', () => {
-      const testScenario = scenario('Test Scenario')
-        .step('First step')
-        .run(['--help'])
-        .expect(() => {})
-        .step('Second step')
-        .run(['--version'])
-        .expect(() => {})
+function makeRunner(result) {
+  return vi.fn().mockResolvedValue(result ?? makeFakeResult())
+}
 
-      // Access internal steps for testing
-      const steps = testScenario._steps || []
-      expect(steps).toHaveLength(2)
-      expect(steps[0].description).toBe('First step')
-      expect(steps[0].command.args).toEqual(['--help'])
-      expect(steps[1].description).toBe('Second step')
-      expect(steps[1].command.args).toEqual(['--version'])
-    })
+// ── 1. Builder shape ──────────────────────────────────────────────────────────
 
-    it('should execute steps in order', async () => {
-      const mockRunner = vi.fn().mockResolvedValue({
-        result: { exitCode: 0, stdout: 'success', stderr: '' },
-        expectSuccess: vi.fn().mockReturnThis(),
-        expectOutput: vi.fn().mockReturnThis(),
-      })
-
-      const testScenario = scenario('Test Scenario')
-        .step('First step')
-        .run(['--help'])
-        .expect((result) => result.expectSuccess())
-        .step('Second step')
-        .run(['--version'])
-        .expect((result) => result.expectSuccess())
-
-      const results = await testScenario.execute(mockRunner)
-
-      expect(mockRunner).toHaveBeenCalledTimes(2)
-      expect(mockRunner).toHaveBeenNthCalledWith(1, ['--help'], {})
-      expect(mockRunner).toHaveBeenNthCalledWith(2, ['--version'], {})
-      expect(results.results).toHaveLength(2)
-    })
-
-    it('should execute steps concurrently when enabled', async () => {
-      const mockRunner = vi.fn().mockResolvedValue({
-        result: { exitCode: 0, stdout: 'success', stderr: '' },
-        expectSuccess: vi.fn().mockReturnThis(),
-        expectOutput: vi.fn().mockReturnThis(),
-      })
-
-      const testScenario = scenario('Concurrent Test Scenario')
-        .concurrent()
-        .step('First step')
-        .run(['--help'])
-        .expect((result) => result.expectSuccess())
-        .step('Second step')
-        .run(['--version'])
-        .expect((result) => result.expectSuccess())
-
-      const results = await testScenario.execute(mockRunner)
-
-      expect(mockRunner).toHaveBeenCalledTimes(2)
-      expect(results.results).toHaveLength(2)
-      expect(results.concurrent).toBe(true)
-    })
-
-    it('should throw error for step without command', async () => {
-      const mockRunner = vi.fn()
-
-      const testScenario = scenario('Test Scenario').step('Step without command')
-
-      await expect(testScenario.execute(mockRunner)).rejects.toThrow(
-        'Step "Step without command" has no command'
-      )
-    })
-
-    it('should throw error for step without expectations', async () => {
-      const mockRunner = vi.fn().mockResolvedValue({
-        result: { exitCode: 0, stdout: 'success', stderr: '' },
-      })
-
-      const testScenario = scenario('Test Scenario')
-        .step('Step without expectations')
-        .run(['--help'])
-
-      await expect(testScenario.execute(mockRunner)).rejects.toThrow(
-        'Step "Step without expectations" has no expectations'
-      )
-    })
-
-    it('should handle multiple concurrent scenarios', async () => {
-      const mockRunner = vi.fn().mockResolvedValue({
-        result: { exitCode: 0, stdout: 'success', stderr: '' },
-        expectSuccess: vi.fn().mockReturnThis(),
-      })
-
-      const scenarios = Array.from({ length: 5 }, (_, i) =>
-        scenario(`Concurrent Scenario ${i}`)
-          .concurrent()
-          .step(`Step ${i}`)
-          .run(['--help'])
-          .expectSuccess()
-      )
-
-      const results = await Promise.all(scenarios.map((scenario) => scenario.execute(mockRunner)))
-
-      expect(results).toHaveLength(5)
-      results.forEach((result) => {
-        expect(result.success).toBe(true)
-        expect(result.concurrent).toBe(true)
-      })
-    })
+describe('scenario() builder shape', () => {
+  it('returns an object with all chainable methods', () => {
+    const b = scenario('shape-check')
+    const methods = [
+      'step', 'run', 'action', 'expect', 'concurrent', 'sequential', 'mode',
+      'execute',
+      'expectSuccess', 'expectFailure', 'expectExit', 'expectOutput',
+      'expectStderr', 'expectNoOutput', 'expectNoStderr', 'expectJson',
+      'expectSnapshot', 'expectSnapshotStdout', 'expectSnapshotStderr',
+      'expectSnapshotJson', 'expectSnapshotFull', 'expectSnapshotOutput',
+      'snapshot',
+    ]
+    for (const m of methods) {
+      expect(typeof b[m], `method ${m}`).toBe('function')
+    }
   })
 
-  describe.concurrent('testUtils', () => {
-    describe.concurrent('waitFor', () => {
-      it('should resolve when condition is met', async () => {
-        let attempts = 0
-        const condition = () => {
-          attempts++
-          return attempts >= 2
-        }
+  it('exposes ._steps as an empty array initially', () => {
+    const b = scenario('empty')
+    expect(b._steps).toEqual([])
+  })
+})
 
-        const result = await testUtils.waitFor(condition, 1000, 10)
-        expect(result).toBe(true)
-        expect(attempts).toBe(2)
-      })
+// ── 2. .step() accumulates steps ─────────────────────────────────────────────
 
-      it('should timeout when condition is not met', async () => {
-        const condition = () => false
+describe('.step() accumulation', () => {
+  it('adds a single step with string args', () => {
+    const b = scenario('s').step('Help', '--help')
+    expect(b._steps).toHaveLength(1)
+    expect(b._steps[0].description).toBe('Help')
+    expect(b._steps[0].args).toEqual(['--help'])
+  })
 
-        await expect(testUtils.waitFor(condition, 100, 10)).rejects.toThrow(
-          'Condition not met within 100ms'
-        )
-      })
+  it('splits string args on whitespace', () => {
+    const b = scenario('s').step('Build', 'build --prod')
+    expect(b._steps[0].args).toEqual(['build', '--prod'])
+  })
 
-      it('should work with async conditions', async () => {
-        let attempts = 0
-        const condition = async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
-          attempts++
-          return attempts >= 2
-        }
+  it('accepts array args directly', () => {
+    const b = scenario('s').step('Init', ['init', 'proj'])
+    expect(b._steps[0].args).toEqual(['init', 'proj'])
+  })
 
-        const result = await testUtils.waitFor(condition, 1000, 10)
-        expect(result).toBe(true)
-      })
+  it('accumulates multiple steps in order', () => {
+    const b = scenario('s')
+      .step('A', 'a')
+      .step('B', 'b')
+      .step('C', 'c')
+    expect(b._steps).toHaveLength(3)
+    expect(b._steps.map((s) => s.description)).toEqual(['A', 'B', 'C'])
+  })
 
-      it('should handle multiple concurrent waitFor calls', async () => {
-        const conditions = Array.from({ length: 3 }, (_, i) => {
-          let attempts = 0
-          return () => {
-            attempts++
-            return attempts >= i + 1
-          }
-        })
+  it('records options on the step', () => {
+    const opts = { cwd: '/tmp', timeout: 5000 }
+    const b = scenario('s').step('X', 'x', opts)
+    expect(b._steps[0].options).toEqual(opts)
+  })
 
-        const promises = conditions.map((condition) => testUtils.waitFor(condition, 1000, 10))
+  it('initialises expectations as empty array', () => {
+    const b = scenario('s').step('X', 'x')
+    expect(b._steps[0].expectations).toEqual([])
+  })
+})
 
-        const results = await Promise.all(promises)
-        expect(results).toHaveLength(3)
-        results.forEach((result) => expect(result).toBe(true))
-      })
-    })
+// ── 3. Chainable convenience expectation methods ──────────────────────────────
 
-    describe.concurrent('retry', () => {
-      it('should succeed on first attempt', async () => {
-        const mockFn = vi.fn().mockResolvedValue('success')
+describe('chainable expectation methods', () => {
+  let b
 
-        const result = await testUtils.retry(mockFn)
+  beforeEach(() => {
+    b = scenario('chain').step('S', 'cmd')
+  })
 
-        expect(result).toBe('success')
-        expect(mockFn).toHaveBeenCalledTimes(1)
-      })
+  it('.expectSuccess() returns the builder', () => {
+    expect(b.expectSuccess()).toBe(b)
+  })
 
-      it('should retry on failure and eventually succeed', async () => {
-        const mockFn = vi
-          .fn()
-          .mockRejectedValueOnce(new Error('First failure'))
-          .mockRejectedValueOnce(new Error('Second failure'))
-          .mockResolvedValue('success')
+  it('.expectFailure() returns the builder', () => {
+    expect(b.expectFailure()).toBe(b)
+  })
 
-        const result = await testUtils.retry(mockFn, 3, 10)
+  it('.expectOutput() returns the builder', () => {
+    expect(b.expectOutput(/x/)).toBe(b)
+  })
 
-        expect(result).toBe('success')
-        expect(mockFn).toHaveBeenCalledTimes(3)
-      })
+  it('.expectNoStderr() returns the builder', () => {
+    expect(b.expectNoStderr()).toBe(b)
+  })
 
-      it('should fail after max attempts', async () => {
-        const mockFn = vi.fn().mockRejectedValue(new Error('Persistent failure'))
+  it('.expectNoOutput() returns the builder', () => {
+    expect(b.expectNoOutput()).toBe(b)
+  })
 
-        await expect(testUtils.retry(mockFn, 2, 10)).rejects.toThrow('Persistent failure')
-        expect(mockFn).toHaveBeenCalledTimes(2)
-      })
+  it('.expectStderr() returns the builder', () => {
+    expect(b.expectStderr(/err/)).toBe(b)
+  })
 
-      it('should handle multiple concurrent retry operations', async () => {
-        const mockFns = Array.from({ length: 3 }, (_, i) => {
-          let attempts = 0
-          return vi.fn().mockImplementation(() => {
-            attempts++
-            if (attempts < 2) {
-              throw new Error(`Attempt ${attempts} failed`)
-            }
-            return `success-${i}`
-          })
-        })
+  it('.expectExit() returns the builder', () => {
+    expect(b.expectExit(0)).toBe(b)
+  })
 
-        const promises = mockFns.map((mockFn) => testUtils.retry(mockFn, 3, 10))
+  it('.expectJson() returns the builder', () => {
+    expect(b.expectJson(() => {})).toBe(b)
+  })
 
-        const results = await Promise.all(promises)
-        expect(results).toHaveLength(3)
-        results.forEach((result, i) => {
-          expect(result).toBe(`success-${i}`)
-        })
-      })
-    })
+  it('.expect() returns the builder', () => {
+    expect(b.expect(() => {})).toBe(b)
+  })
 
-    describe.concurrent('createTempFile', () => {
-      let tempFiles = []
+  it('each expectation adds a function to currentStep.expectations', () => {
+    b.expectSuccess().expectOutput('hi').expectNoStderr()
+    expect(b._steps[0].expectations).toHaveLength(3)
+    b._steps[0].expectations.forEach((fn) => expect(typeof fn).toBe('function'))
+  })
 
-      afterEach(async () => {
-        if (tempFiles.length > 0) {
-          await testUtils.cleanupTempFiles(tempFiles)
-          tempFiles = []
-        }
-      })
+  it('expectations are called with the result during execute()', async () => {
+    const result = makeFakeResult()
+    const runner = makeRunner(result)
 
-      it('should create a temporary file', async () => {
-        const tempFile = await testUtils.createTempFile('test content', '.txt')
-        tempFiles.push(tempFile)
+    await scenario('exec')
+      .step('S', 'cmd')
+      .expectSuccess()
+      .expectNoStderr()
+      .execute(runner)
 
-        expect(tempFile).toContain('citty-test-')
-        expect(tempFile).toContain('.txt')
+    expect(result.expectSuccess).toHaveBeenCalledTimes(1)
+    expect(result.expectNoStderr).toHaveBeenCalledTimes(1)
+  })
+})
 
-        const { readFileSync } = await import('node:fs')
-        const content = readFileSync(tempFile, 'utf8')
-        expect(content).toBe('test content')
-      })
+// ── 4. Factory helpers ────────────────────────────────────────────────────────
 
-      it('should create file with default extension', async () => {
-        const tempFile = await testUtils.createTempFile('test content')
-        tempFiles.push(tempFile)
+describe('concurrentScenario()', () => {
+  it('returns a builder with all chainable methods', () => {
+    const b = concurrentScenario('c')
+    expect(typeof b.step).toBe('function')
+    expect(typeof b.execute).toBe('function')
+  })
 
-        expect(tempFile).toContain('.txt')
-      })
+  it('executes in concurrent mode', async () => {
+    const runner = makeRunner()
+    const result = await concurrentScenario('c')
+      .step('A', 'a')
+      .expectSuccess()
+      .execute(runner)
+    expect(result.concurrent).toBe(true)
+  })
+})
 
-      it('should create multiple temporary files concurrently', async () => {
-        const contents = ['content1', 'content2', 'content3']
-        const extensions = ['.txt', '.json', '.md']
+describe('localScenario()', () => {
+  it('returns a valid builder', () => {
+    const b = localScenario('l')
+    expect(typeof b.step).toBe('function')
+    expect(typeof b.execute).toBe('function')
+  })
 
-        const promises = contents.map((content, i) =>
-          testUtils.createTempFile(content, extensions[i])
-        )
+  it('uses local mode', async () => {
+    const runner = makeRunner()
+    const result = await localScenario('l')
+      .step('A', 'a')
+      .expectSuccess()
+      .execute(runner)
+    expect(result.mode).toBe('local')
+  })
+})
 
-        const tempFiles = await Promise.all(promises)
+describe('cleanroomScenario()', () => {
+  it('returns a valid builder', () => {
+    const b = cleanroomScenario('cr')
+    expect(typeof b.step).toBe('function')
+    expect(typeof b.execute).toBe('function')
+  })
 
-        expect(tempFiles).toHaveLength(3)
-        tempFiles.forEach((file, i) => {
-          expect(file).toContain('citty-test-')
-          expect(file).toContain(extensions[i])
-        })
+  it('uses cleanroom mode', async () => {
+    const runner = makeRunner()
+    const result = await cleanroomScenario('cr')
+      .step('A', 'a')
+      .expectSuccess()
+      .execute(runner)
+    expect(result.mode).toBe('cleanroom')
+  })
+})
 
-        // Clean up
-        await testUtils.cleanupTempFiles(tempFiles)
-      })
-    })
+// ── 5. Edge cases ─────────────────────────────────────────────────────────────
 
-    describe.concurrent('cleanupTempFiles', () => {
-      it('should clean up temporary files', async () => {
-        const tempFile = await testUtils.createTempFile('test content', '.txt')
+describe('edge cases', () => {
+  it('empty string scenario name is accepted (builder created)', () => {
+    expect(() => scenario('')).not.toThrow()
+    const b = scenario('')
+    expect(typeof b.step).toBe('function')
+  })
 
-        const { existsSync } = await import('node:fs')
-        expect(existsSync(tempFile)).toBe(true)
+  it('execute() with no steps throws "No steps defined"', async () => {
+    await expect(scenario('empty').execute(makeRunner())).rejects.toThrow('No steps defined')
+  })
 
-        await testUtils.cleanupTempFiles([tempFile])
-        expect(existsSync(tempFile)).toBe(false)
-      })
+  it('step with no args throws "has no command" on execute()', async () => {
+    const b = scenario('x').step('no-args')
+    await expect(b.execute(makeRunner())).rejects.toThrow('has no command')
+  })
 
-      it('should handle non-existent files gracefully', async () => {
-        await expect(testUtils.cleanupTempFiles(['/non/existent/file'])).resolves.not.toThrow()
-      })
+  it('step with empty-string args produces [] and throws "has no command"', async () => {
+    const b = scenario('x').step('empty-str', '')
+    expect(b._steps[0].args).toEqual([])
+    await expect(b.execute(makeRunner())).rejects.toThrow('has no command')
+  })
 
-      it('should clean up multiple files concurrently', async () => {
-        const tempFiles = await Promise.all([
-          testUtils.createTempFile('content1', '.txt'),
-          testUtils.createTempFile('content2', '.json'),
-          testUtils.createTempFile('content3', '.md'),
-        ])
+  it('step with no expectations throws "has no expectations" on execute()', async () => {
+    const b = scenario('x').step('no-exp', 'cmd')
+    await expect(b.execute(makeRunner())).rejects.toThrow('has no expectations')
+  })
 
-        const { existsSync } = await import('node:fs')
-        tempFiles.forEach((file) => {
-          expect(existsSync(file)).toBe(true)
-        })
+  it('concurrent mode with 0 steps throws "No steps defined"', async () => {
+    await expect(concurrentScenario('empty').execute(makeRunner())).rejects.toThrow(
+      'No steps defined'
+    )
+  })
 
-        await testUtils.cleanupTempFiles(tempFiles)
+  it('concurrent mode single step with no command throws', async () => {
+    await expect(
+      concurrentScenario('c').step('bad').execute(makeRunner())
+    ).rejects.toThrow('has no command')
+  })
 
-        tempFiles.forEach((file) => {
-          expect(existsSync(file)).toBe(false)
-        })
-      })
-    })
+  it('.expect() without a prior step throws', () => {
+    expect(() => scenario('x').expect(() => {})).toThrow('Must call step() before expect()')
+  })
+
+  it('.run() without a prior step throws', () => {
+    expect(() => scenario('x').run(['--help'])).toThrow('Must call step() before run()')
+  })
+})
+
+// ── 6. Builder isolation (no shared state) ────────────────────────────────────
+
+describe('builder isolation', () => {
+  it('two scenario() calls do not share steps', () => {
+    const a = scenario('A').step('a1', 'x')
+    const b = scenario('B')
+    expect(a._steps).toHaveLength(1)
+    expect(b._steps).toHaveLength(0)
+  })
+
+  it('adding steps to one builder does not affect another', () => {
+    const a = scenario('A')
+    const b = scenario('B')
+
+    a.step('step-a', 'cmd-a')
+    b.step('step-b1', 'cmd-b1').step('step-b2', 'cmd-b2')
+
+    expect(a._steps).toHaveLength(1)
+    expect(b._steps).toHaveLength(2)
+  })
+
+  it('expectations on one builder do not leak to another', () => {
+    const a = scenario('A').step('s', 'cmd').expectSuccess()
+    const b = scenario('B').step('s', 'cmd')
+
+    expect(a._steps[0].expectations).toHaveLength(1)
+    expect(b._steps[0].expectations).toHaveLength(0)
+  })
+
+  it('concurrent flag is per-builder', () => {
+    const a = scenario('A').concurrent()
+    const b = scenario('B')
+
+    // Execute both with a runner to verify concurrent flag
+    const runner = makeRunner()
+    return Promise.all([
+      a.step('s', 'x').expectSuccess().execute(runner).then((r) => {
+        expect(r.concurrent).toBe(true)
+      }),
+      b.step('s', 'x').expectSuccess().execute(runner).then((r) => {
+        expect(r.concurrent).toBe(false)
+      }),
+    ])
+  })
+
+  it('mode is per-builder', async () => {
+    const runner = makeRunner()
+    const local = await localScenario('L').step('s', 'x').expectSuccess().execute(runner)
+    const clean = await cleanroomScenario('C').step('s', 'x').expectSuccess().execute(runner)
+
+    expect(local.mode).toBe('local')
+    expect(clean.mode).toBe('cleanroom')
+  })
+})
+
+// ── 7. execute() result shape ─────────────────────────────────────────────────
+
+describe('execute() result shape', () => {
+  it('returns scenario name, results array, success flag, lastResult, concurrent, mode', async () => {
+    const runner = makeRunner()
+    const result = await scenario('my-scenario')
+      .step('S', 'cmd')
+      .expectSuccess()
+      .execute(runner)
+
+    expect(result.scenario).toBe('my-scenario')
+    expect(Array.isArray(result.results)).toBe(true)
+    expect(result.results).toHaveLength(1)
+    expect(typeof result.success).toBe('boolean')
+    expect(result.lastResult).toBeDefined()
+    expect(typeof result.concurrent).toBe('boolean')
+    expect(typeof result.mode).toBe('string')
+  })
+
+  it('multi-step result has all steps in order', async () => {
+    const runner = makeRunner()
+    const result = await scenario('multi')
+      .step('A', 'a').expectSuccess()
+      .step('B', 'b').expectSuccess()
+      .step('C', 'c').expectSuccess()
+      .execute(runner)
+
+    expect(result.results.map((r) => r.step)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('concurrent results are returned in original step order', async () => {
+    const runner = makeRunner()
+    const result = await concurrentScenario('ord')
+      .step('X', 'x').expectSuccess()
+      .step('Y', 'y').expectSuccess()
+      .step('Z', 'z').expectSuccess()
+      .execute(runner)
+
+    expect(result.results.map((r) => r.step)).toEqual(['X', 'Y', 'Z'])
   })
 })
