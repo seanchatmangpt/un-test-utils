@@ -79,7 +79,18 @@ function reportCommandFailure(result) {
 }
 
 /**
- * Core runner function for local execution
+ * Run a CLI command locally using Node's spawnSync and return a fluent assertion wrapper.
+ * @param {string|string[]|Object} firstArg - Command args (string/array) or full options object.
+ * @param {Object} [secondArg] - Options when firstArg is args: `{ cliPath, cwd, env, timeout, failFast }`.
+ * @param {string} [secondArg.cliPath] - Path to the CLI entry point.
+ * @param {string} [secondArg.cwd] - Working directory for the command.
+ * @param {Object.<string,string>} [secondArg.env] - Additional environment variables.
+ * @param {number} [secondArg.timeout=30000] - Execution timeout in milliseconds.
+ * @param {boolean} [secondArg.failFast=false] - Throw immediately on non-zero exit.
+ * @returns {Object} Assertion-wrapped result with `expectSuccess`, `expectOutput`, etc.
+ * @example
+ * const result = runLocalCitty(['--help'], { cliPath: './src/cli.mjs' })
+ * result.expectSuccess().expectOutput(/USAGE/)
  */
 export async function runLocalCitty(firstArg, secondArg) {
   const isPositional = Array.isArray(firstArg) || typeof firstArg === 'string'
@@ -192,7 +203,18 @@ export async function runLocalCitty(firstArg, secondArg) {
 }
 
 /**
- * Fluent assertion wrapper
+ * Wrap a raw command result object with fluent assertion methods.
+ * @param {Object} result - Raw execution result.
+ * @param {boolean} result.success - Whether the command exited with code 0.
+ * @param {number} result.exitCode - Process exit code.
+ * @param {string} result.stdout - Standard output (trimmed).
+ * @param {string} result.stderr - Standard error (trimmed).
+ * @param {string[]} result.args - Arguments passed to the CLI.
+ * @param {number} result.durationMs - Wall-clock duration in milliseconds.
+ * @returns {Object} Result enriched with `expectSuccess`, `expectFailure`, `expectOutput`, `expectExit`, `expectJson` and a lazy `json` getter.
+ * @example
+ * const wrapped = wrapWithAssertions({ success: true, exitCode: 0, stdout: 'ok', stderr: '', args: [], durationMs: 12 })
+ * wrapped.expectSuccess()
  */
 export function wrapWithAssertions(result) {
   if (!('json' in result)) {

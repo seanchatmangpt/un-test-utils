@@ -21,11 +21,6 @@ export function scenario(name) {
   let currentStep = null
   let concurrentMode = false
   let mode = null // 'local', 'cleanroom', or null (auto-detect)
-  let scenarioTimeout = null
-  let scenarioEnv = {}
-  let scenarioRetry = 0
-  let scenarioCwd = null
-  let scenarioSilent = false
 
   const builder = {
     // Expose steps for testing
@@ -162,64 +157,6 @@ export function scenario(name) {
     },
 
     /**
-     * Set timeout in milliseconds.
-     * When called directly after .step(), sets the per-step timeout.
-     * When called on the scenario builder (before any .step()), sets the scenario-level timeout.
-     * @param {number} ms - Timeout in milliseconds
-     */
-    timeout(ms) {
-      if (currentStep) {
-        currentStep.options = { ...currentStep.options, timeout: ms }
-        if (currentStep.command) {
-          currentStep.command.options = { ...currentStep.command.options, timeout: ms }
-        }
-      } else {
-        scenarioTimeout = ms
-      }
-      return this
-    },
-
-    /**
-     * Set environment variables for all steps in this scenario
-     * @param {string|Object} keyOrObj - Key string or {KEY: value} object
-     * @param {string} [value] - Value when key is a string
-     */
-    env(keyOrObj, value) {
-      if (typeof keyOrObj === 'object' && keyOrObj !== null) {
-        Object.assign(scenarioEnv, keyOrObj)
-      } else {
-        scenarioEnv[keyOrObj] = value
-      }
-      return this
-    },
-
-    /**
-     * Retry failed steps up to n times before failing
-     * @param {number} n - Max retry attempts
-     */
-    retry(n) {
-      scenarioRetry = n
-      return this
-    },
-
-    /**
-     * Override working directory for all steps
-     * @param {string} path - Working directory path
-     */
-    cwd(path) {
-      scenarioCwd = path
-      return this
-    },
-
-    /**
-     * Suppress consola output for this scenario (useful in CI)
-     */
-    silent() {
-      scenarioSilent = true
-      return this
-    },
-
-    /**
      * v1.0.0 API: Execute all steps with auto-detected mode
      * Mode auto-detection:
      * 1. Uses explicitly set mode via .mode()
@@ -236,48 +173,14 @@ export function scenario(name) {
       // Auto-detect mode if not explicitly set
       const executionMode = mode || process.env.TEST_RUNNER || 'local'
 
-      const log = scenarioSilent ? { info: () => {}, start: () => {}, success: () => {} } : consola
-
-      // Merge scenario-level options into each step (step-level always wins)
-      const resolvedSteps = steps.map((step) => ({
-        ...step,
-        options: {
-          cwd: step.options.cwd || scenarioCwd,
-          timeout: step.options.timeout || scenarioTimeout,
-          env: { ...scenarioEnv, ...step.options.env },
-          ...Object.fromEntries(
-            Object.entries(step.options).filter(([k]) => !['cwd', 'timeout', 'env'].includes(k))
-          ),
-        },
-        retryCount: scenarioRetry,
-      }))
-
       const results = []
       let lastResult = null
 
-      const runStep = async (step, context = {}) => {
-        let attempt = 0
-        const maxAttempts = (step.retryCount || 0) + 1
-        let lastErr
-        while (attempt < maxAttempts) {
-          try {
-            if (step.action) {
-              return await step.action({ lastResult: context.lastResult, context: {} })
-            }
-            return await executeStep(step, executionMode, customRunner)
-          } catch (err) {
-            lastErr = err
-            attempt++
-          }
-        }
-        throw lastErr
-      }
-
       if (concurrentMode) {
         // Execute all steps concurrently
-        log.info(`Executing ${resolvedSteps.length} steps concurrently (${executionMode} mode)`)
+        consola.info(`🚀 Executing ${steps.length} steps concurrently (${executionMode} mode)`)
 
-        const concurrentPromises = resolvedSteps.map(async (step, index) => {
+        const concurrentPromises = steps.map(async (step, index) => {
           if (!step.action && (step.args === null || step.args === undefined || (Array.isArray(step.args) && step.args.length === 0))) {
             throw new Error(`Step "${step.description}" has no command`)
           }
@@ -286,16 +189,24 @@ export function scenario(name) {
             throw new Error(`Step "${step.description}" has no expectations`)
           }
 
-          log.start(`Starting concurrent step ${index + 1}: ${step.description}`)
+          consola.start(`🔄 Starting concurrent step ${index + 1}: ${step.description}`)
 
-          const result = await runStep(step, { lastResult })
+          let result
+
+          if (step.action) {
+            // Execute custom action
+            result = await step.action({ lastResult, context: {} })
+          } else {
+            // Execute using unified runner
+            result = await executeStep(step, executionMode, customRunner)
+          }
 
           // Apply expectations - let them crash if they fail
           for (const expectation of step.expectations) {
             expectation(result)
           }
 
-          log.success(`Concurrent step ${index + 1} completed: ${step.description}`)
+          consola.success(`✅ Concurrent step ${index + 1} completed: ${step.description}`)
           return { step: step.description, result, success: true, index }
         })
 
@@ -312,10 +223,10 @@ export function scenario(name) {
           }
         }
 
-        log.success(`All ${resolvedSteps.length} concurrent steps completed`)
+        consola.success(`🎉 All ${steps.length} concurrent steps completed`)
       } else {
         // Execute steps sequentially
-        for (const step of resolvedSteps) {
+        for (const step of steps) {
           if (!step.action && (step.args === null || step.args === undefined || (Array.isArray(step.args) && step.args.length === 0))) {
             throw new Error(`Step "${step.description}" has no command`)
           }
@@ -324,9 +235,17 @@ export function scenario(name) {
             throw new Error(`Step "${step.description}" has no expectations`)
           }
 
-          log.start(`Executing: ${step.description}`)
+          consola.start(`🔄 Executing: ${step.description}`)
 
-          const result = await runStep(step, { lastResult })
+          let result
+
+          if (step.action) {
+            // Execute custom action
+            result = await step.action({ lastResult, context: {} })
+          } else {
+            // Execute using unified runner
+            result = await executeStep(step, executionMode, customRunner)
+          }
 
           lastResult = result
 
@@ -336,7 +255,7 @@ export function scenario(name) {
           }
 
           results.push({ step: step.description, result, success: true })
-          log.success(`Step completed: ${step.description}`)
+          consola.success(`✅ Step completed: ${step.description}`)
         }
       }
 
@@ -475,10 +394,16 @@ async function executeStep(step, executionMode, customRunner) {
   }
 }
 
-// Convenience alias for users who prefer `test` over `scenario`
-export const test = scenario
-
-// Export concurrent scenario factory function
+/**
+ * Create a scenario that runs all steps concurrently.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with concurrent mode enabled.
+ * @example
+ * await concurrentScenario('Parallel checks')
+ *   .step('Help', '--help').expectSuccess()
+ *   .step('Version', '--version').expectSuccess()
+ *   .execute()
+ */
 export function concurrentScenario(name) {
   return scenario(name).concurrent()
 }
@@ -563,11 +488,28 @@ export const testUtils = {
   },
 }
 
-// Convenience functions for different runner types
+/**
+ * Create a scenario pinned to cleanroom (Docker) execution mode.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with mode set to 'cleanroom'.
+ * @example
+ * await cleanroomScenario('Docker init')
+ *   .step('Init project', ['init', 'my-app']).expectSuccess()
+ *   .execute()
+ */
 export function cleanroomScenario(name) {
   return scenario(name).mode('cleanroom')
 }
 
+/**
+ * Create a scenario pinned to local execution mode.
+ * @param {string} name - Scenario name.
+ * @returns {Object} Scenario builder with mode set to 'local'.
+ * @example
+ * await localScenario('Local help')
+ *   .step('Help', '--help').expectSuccess()
+ *   .execute()
+ */
 export function localScenario(name) {
   return scenario(name).mode('local')
 }

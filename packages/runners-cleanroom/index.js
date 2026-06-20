@@ -47,6 +47,18 @@ async function verifyContainerHealth(container) {
   return exitCode === 0
 }
 
+/**
+ * Start (or reuse) a Docker container for cleanroom test execution.
+ * @param {Object} [options={}] - Container configuration.
+ * @param {string} [options.rootDir='.'] - Host directory to copy into the container.
+ * @param {string} [options.nodeImage='node:20-alpine'] - Docker image to use.
+ * @param {string} [options.memoryLimit='512m'] - Container memory limit.
+ * @param {string} [options.cpuLimit='1.0'] - Container CPU quota.
+ * @param {number} [options.timeout=60000] - Container startup timeout in milliseconds.
+ * @returns {Promise<Object>} The singleton container descriptor `{ container, memoryLimit, cpuLimit, timeout, createdAt }`.
+ * @example
+ * await setupCleanroom({ rootDir: '.', nodeImage: 'node:18-alpine' })
+ */
 export async function setupCleanroom({
   rootDir = '.',
   nodeImage = 'node:20-alpine',
@@ -135,10 +147,31 @@ export async function setupCleanroom({
   return singleton
 }
 
+/**
+ * Return whether a cleanroom container is currently running.
+ * @returns {boolean} `true` if `setupCleanroom` has been called and the container is live.
+ * @example
+ * if (isCleanroomActive()) await teardownCleanroom()
+ */
 export function isCleanroomActive() {
   return !!singleton
 }
 
+/**
+ * Execute a CLI command inside the running cleanroom container.
+ * @param {string[]} args - CLI arguments to pass to `node <cliPath> ...args`.
+ * @param {Object} [options={}] - Execution options.
+ * @param {boolean} [options.json=false] - Parse stdout as JSON and attach to `result.json`.
+ * @param {string} [options.cwd='/app'] - Working directory inside the container.
+ * @param {number} [options.timeout=10000] - Command timeout in milliseconds.
+ * @param {Object.<string,string>} [options.env={}] - Extra environment variables for the container exec.
+ * @param {string} [options.cliPath] - Path to the CLI script inside the container.
+ * @returns {Promise<Object>} Assertion-wrapped result with `exitCode`, `stdout`, `stderr`, and fluent assertion methods.
+ * @example
+ * await setupCleanroom()
+ * const result = await runCitty(['--help'], { timeout: 5000 })
+ * result.expectSuccess()
+ */
 export async function runCitty(
   args,
   { json = false, cwd = '/app', timeout = 10000, env = {}, cliPath } = {}
@@ -212,6 +245,12 @@ export async function runCitty(
   }
 }
 
+/**
+ * Stop and destroy the running cleanroom container.
+ * @returns {Promise<void>} Resolves when the container has been stopped and the singleton cleared.
+ * @example
+ * afterAll(async () => { await teardownCleanroom() })
+ */
 export async function teardownCleanroom() {
   if (singleton) {
     // Verify container is still running before stopping - let it crash if unhealthy
