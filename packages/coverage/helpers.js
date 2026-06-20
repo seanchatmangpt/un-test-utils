@@ -3,6 +3,23 @@ import { consola } from 'consola'
  * @fileoverview Shared utilities for CLI analysis commands
  * @description Common functions for parsing, formatting, and error handling
  */
+export {
+  buildAnalysisMetadata,
+  validateCLIPath,
+  formatCLIDetection,
+  buildReportHeader,
+  buildReportFooter,
+  formatAnalysisError,
+  mergeUniqueItems,
+  safePercentage,
+  formatFileSize,
+  getPriorityEmoji,
+  formatAsJSON,
+  formatAsYAML,
+  formatReport,
+  createReportSummary,
+  formatDuration,
+} from '@un-test/core/utils/analysis-report-utils'
 
 import { writeFileSync } from 'fs'
 

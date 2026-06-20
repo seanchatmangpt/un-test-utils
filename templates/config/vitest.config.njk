@@ -1,0 +1,51 @@
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    {% if environment %}
+    environment: '{{ environment }}',
+    {% endif %}
+    {% if timeout %}
+    testTimeout: {{ timeout }},
+    {% endif %}
+    {% if coverage %}
+    coverage: {
+      provider: '{{ coverage.provider }}',
+      {% if coverage.reporter %}
+      reporter: [{% for rep in coverage.reporter %}'{{ rep }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+      {% endif %}
+      {% if coverage.thresholds %}
+      thresholds: {
+        {% for threshold in coverage.thresholds %}
+        {{ threshold.type }}: {{ threshold.value }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+      },
+      {% endif %}
+    },
+    {% endif %}
+    {% if globals %}
+    globals: true,
+    {% endif %}
+    {% if setupFiles %}
+    setupFiles: [
+      {% for file in setupFiles %}
+      '{{ file }}'{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ],
+    {% endif %}
+    {% if include %}
+    include: [
+      {% for pattern in include %}
+      '{{ pattern }}'{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ],
+    {% endif %}
+    {% if exclude %}
+    exclude: [
+      {% for pattern in exclude %}
+      '{{ pattern }}'{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ],
+    {% endif %}
+  },
+})
